@@ -23,13 +23,12 @@ async def amain(TEXT) -> None:
     print("Finding right voice...")
     voices = await VoicesManager.create()
     stdout = sys.stdout
-    audio_bytes = []
     voice_for_tts = random.choice(POSSIBLE_VOICES)
 
     for attempt in range(3):
         try:
             print("Voice found. I am " + voice_for_tts + " for this run. Beginning generation...")
-            communicate = edge_tts.Communicate(TEXT, voice_for_tts, rate="+100%")
+            communicate = edge_tts.Communicate(TEXT, voice_for_tts, rate="+75%")
             submaker = edge_tts.SubMaker()
 
             with open(OUTPUT_FILE, "wb") as file:
@@ -39,20 +38,20 @@ async def amain(TEXT) -> None:
                     elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
                         submaker.feed(chunk)
             break
-        
+
         except WSServerHandshakeError as err:
-            if err.status != 403 or attempt == 2:
+            if err.status not in (403) or attempt == 2:
                 raise
-            print("Edge TTS websocket returned 403. Retrying with another voice...")
+
+            print(f"Edge TTS websocket returned {err.status}. Retrying with another voice...")
             voice_for_tts = random.choice(POSSIBLE_VOICES)
-            await asyncio.sleep(1)
+
+            # longer wait helps with 503 rate limiting/server overload
+            await asyncio.sleep(3)
 
     print("Done generating audio and subtitles. Saving subtitles to file...")
     with open(SRT_FILE, "w", encoding="utf-8") as file:
         file.write(submaker.get_srt())
-    
-    stdout.write(f"Audio file length: {len(audio_bytes)}\n")
+
     print("TTS generation complete. Subtitles saved to " + SRT_FILE + " and audio saved to " + OUTPUT_FILE)
-    stdout.write(submaker.get_srt())
-    print("See above for the contents of the SRT file.")
     print("Done with TTS generation. Beginning video editing process...")
