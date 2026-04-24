@@ -4,9 +4,11 @@ import edge_tts
 from edge_tts import VoicesManager
 import random
 
-OUTPUT_FILE = "voice.mp3"
-SRT_FILE = "voice.srt"
+OUTPUT_FILE = "audio/voice.mp3"
+SRT_FILE = "audio/voice.srt"
 TEXT = ""
+POSSIBLE_VOICES = ["en-AU-WilliamMultilingualNeural", "en-AU-NatashaNeural", "en-CA-ClaraNeural", "en-CA-LiamNeural", "en-GB-LibbyNeural", "en-GB-MaisieNeural", "en-GB-RyanNeural", "en-GB-SoniaNeural", "en-GB-ThomasNeural", "en-US-AvaNeural", "en-US-AndrewNeural", "en-US-EmmaNeural", "en-US-BrianNeural", "en-US-AnaNeural", "en-US-AndrewMultilingualNeural", "en-US-AriaNeural", "en-US-AvaMultilingualNeural", "en-US-BrianMultilingualNeural", "en-US-ChristopherNeural", "en-US-EmmaMultilingualNeural", "en-US-EricNeural", "en-US-GuyNeural", "en-US-JennyNeural", "en-US-MichelleNeural", "en-US-RogerNeural", "en-US-SteffanNeural"]
+
 def begin(NVIDIA_API_KEY,): ## pass down API key in case we need it later.
     print("Beginning TTS generation...")
     with open ("response.txt", "r") as f:
@@ -19,11 +21,10 @@ async def amain(TEXT) -> None:
     # https://github.com/rany2/edge-tts/blob/master/examples/async_audio_gen_with_dynamic_voice_selection.p
     print("Finding right voice...")
     voices = await VoicesManager.create()
-    voice = voices.find(Gender = "Male", Language = "en")
-    voice_for_tts = random.choice(voice)["Name"]
+    voice_for_tts = "en-US-AndrewNeural"
     print("Voice found. I am " + voice_for_tts + " for this run. Beginning generation...")
 
-    communicate = edge_tts.Communicate(TEXT, voice_for_tts)
+    communicate = edge_tts.Communicate(TEXT, "en-US-AndrewNeural", rate="+100%")
     submaker = edge_tts.SubMaker()
     stdout = sys.stdout
     audio_bytes = []
