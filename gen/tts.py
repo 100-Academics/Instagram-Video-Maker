@@ -1,6 +1,7 @@
 import asyncio
 import sys
 import edge_tts
+from aiohttp.client_exceptions import WSServerHandshakeError
 from edge_tts import VoicesManager
 import random
 
@@ -21,20 +22,30 @@ async def amain(TEXT) -> None:
     # https://github.com/rany2/edge-tts/blob/master/examples/async_audio_gen_with_dynamic_voice_selection.p
     print("Finding right voice...")
     voices = await VoicesManager.create()
-    voice_for_tts = "en-US-AndrewNeural"
-    print("Voice found. I am " + voice_for_tts + " for this run. Beginning generation...")
-
-    communicate = edge_tts.Communicate(TEXT, "en-US-AndrewNeural", rate="+100%")
-    submaker = edge_tts.SubMaker()
     stdout = sys.stdout
     audio_bytes = []
-    
-    with open(OUTPUT_FILE, "wb") as file:
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                file.write(chunk["data"])
-            elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
-                submaker.feed(chunk)
+    voice_for_tts = random.choice(POSSIBLE_VOICES)
+
+    for attempt in range(3):
+        try:
+            print("Voice found. I am " + voice_for_tts + " for this run. Beginning generation...")
+            communicate = edge_tts.Communicate(TEXT, voice_for_tts, rate="+100%")
+            submaker = edge_tts.SubMaker()
+
+            with open(OUTPUT_FILE, "wb") as file:
+                async for chunk in communicate.stream():
+                    if chunk["type"] == "audio":
+                        file.write(chunk["data"])
+                    elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
+                        submaker.feed(chunk)
+            break
+        
+        except WSServerHandshakeError as err:
+            if err.status != 403 or attempt == 2:
+                raise
+            print("Edge TTS websocket returned 403. Retrying with another voice...")
+            voice_for_tts = random.choice(POSSIBLE_VOICES)
+            await asyncio.sleep(1)
 
     print("Done generating audio and subtitles. Saving subtitles to file...")
     with open(SRT_FILE, "w", encoding="utf-8") as file:
