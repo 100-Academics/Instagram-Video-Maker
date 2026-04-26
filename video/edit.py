@@ -1,10 +1,14 @@
 import ffmpeg
 import random
+import os
+
+SAVE_PATH = "video/done"
+NAME_DEFAULT = "final"
 
 def get_audio_length(audio_file):
     try:
         probe = ffmpeg.probe(audio_file)
-        duration = float(probe["format"]["duration"])
+        duration = float(probe["format"]["duration"]) ## find audio length from file
         print(f"Audio length: {duration:.2f} seconds")
         return duration
 
@@ -28,12 +32,12 @@ def get_random_section(input_video, output_video, audio_file):
 
     try:
         probe = ffmpeg.probe(input_video)
-        video_duration = float(probe["format"]["duration"])
+        video_duration = float(probe["format"]["duration"]) ## find length of your video/full/mc_clips footage.
         print(f"Video length: {video_duration:.2f} seconds")
 
-        if audio_length >= video_duration:
+        if audio_length >= video_duration: ## safety check
             print("Audio is longer than (or equal to) the video.")
-            print("Using the full video instead.")
+            print("Using the full video instead.") ## with the footage I have, this would be 8 hours. oh god.
 
             (
                 ffmpeg
@@ -43,12 +47,13 @@ def get_random_section(input_video, output_video, audio_file):
             )
             return
 
-        max_start_time = video_duration - audio_length
-        start_time = random.uniform(0, max_start_time)
+        max_start_time = video_duration - audio_length ## safety to ensure we do not go over the max video length
+        start_time = random.uniform(0, max_start_time) ## sample random start time.
 
         print(f"Cutting from {start_time:.2f}s to {start_time + audio_length:.2f}s")
 
-        (
+        ( ## make the cut. Send it to wherever you sat output_video to. Which is to say where I set it to. That being video/clip/clip.mp4.
+          ## Idk if you can tell but it is almost midnight as I write this. ^^^
             ffmpeg
             .input(input_video, ss=start_time)
             .output(
@@ -75,32 +80,32 @@ def overlay_audio_onto_video(video, audio, srt, out):
         video_in = ffmpeg.input(video)
         audio_in = ffmpeg.input(audio)
 
-        # Dark pill style: centered, white bold text, semi-transparent black background box
-        subtitle_filter = (
-            f"subtitles={srt}:force_style='"
-            "Alignment=2,"          # centered horizontally, bottom-anchored
-            "MarginV=60,"           # distance from bottom
-            "Fontname=Arial,"
-            "Fontsize=18,"
-            "Bold=1,"
-            "PrimaryColour=&H00FFFFFF,"   # white text
-            "BackColour=&HBF000000,"      # semi-transparent black background (75% opacity)
-            "BorderStyle=4,"              # opaque box (pill background)
-            "Outline=0,"
-            "Shadow=0,"
-            "MarginL=20,"
-            "MarginR=20"
-            "'"
-        )
+        # Unused subtitles; opted instead for the built in Instagram subtitle generator. Uncomment if you want these, but beware they may break.
+        # subtitle_filter = (
+        #     f"subtitles={srt}:force_style='"
+        #     "Alignment=2,"          # centered horizontally, bottom-anchored
+        #     "MarginV=60,"           # distance from bottom
+        #     "Fontname=Arial,"
+        #     "Fontsize=18,"
+        #     "Bold=1,"
+        #     "PrimaryColour=&H00FFFFFF,"   # white text
+        #     "BackColour=&HBF000000,"      # semi-transparent black background (75% opacity)
+        #     "BorderStyle=4,"              # opaque box (pill background)
+        #     "Outline=0,"
+        #     "Shadow=0,"
+        #     "MarginL=20,"
+        #     "MarginR=20"
+        #     "'"
+        # )
 
-        print("Beginning ffmpeg output.")
+        print("Beginning ffmpeg output...")
         (
             ffmpeg
             .output(
                 video_in,
                 audio_in,
                 out,
-                vcodec="libx264",
+                vcodec="libx264", ## NVENC H.264 does not work for some reason on my windows device. I give up trying to troubleshoot.
                 acodec="aac",
                 strict="experimental"
             )
@@ -117,6 +122,16 @@ def overlay_audio_onto_video(video, audio, srt, out):
     except Exception as e:
         print(f"Unexpected error while overlaying audio and subtitles: {e}")
 
+def set_name(): ## make it so more than one video will exist in video/done
+    alreadyExistingVideos = 0
+    for file in os.listdir(SAVE_PATH):
+        if file.endswith(".mp4"):
+            alreadyExistingVideos += 1
+
+    name_actual = NAME_DEFAULT + str(alreadyExistingVideos)
+    return name_actual
+
 def start(NVIDIA_API_KEY):
     get_random_section("video/full/mc_clips.mp4", "video/clip/clip.mp4", "audio/voice.mp3")
-    overlay_audio_onto_video("video/clip/clip.mp4", "audio/voice.mp3", "audio/voice.srt", "video/done/final.mp4")
+
+    overlay_audio_onto_video("video/clip/clip.mp4", "audio/voice.mp3", "audio/voice.srt", os.path.join(SAVE_PATH, f"{set_name()}.mp4"))

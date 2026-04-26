@@ -23,15 +23,15 @@ async def amain(TEXT) -> None:
     print("Finding right voice...")
     voices = await VoicesManager.create()
     stdout = sys.stdout
-    voice_for_tts = random.choice(POSSIBLE_VOICES)
+    voice_for_tts = random.choice(POSSIBLE_VOICES) ## pick random voice
 
     for attempt in range(3):
         try:
             print("Voice found. I am " + voice_for_tts + " for this run. Beginning generation...")
-            communicate = edge_tts.Communicate(TEXT, voice_for_tts, rate="+75%")
+            communicate = edge_tts.Communicate(TEXT, voice_for_tts, rate="+75%") ## set voice and text to read. make it reasonably fast for those with short attention spans.
             submaker = edge_tts.SubMaker()
 
-            with open(OUTPUT_FILE, "wb") as file:
+            with open(OUTPUT_FILE, "wb") as file: ## write the audio file
                 async for chunk in communicate.stream():
                     if chunk["type"] == "audio":
                         file.write(chunk["data"])
@@ -39,11 +39,11 @@ async def amain(TEXT) -> None:
                         submaker.feed(chunk)
             break
 
-        except WSServerHandshakeError as err:
+        except WSServerHandshakeError as err: ## try again if 403 error.
             if err.status not in (403) or attempt == 2:
                 raise
 
-            print(f"Edge TTS websocket returned {err.status}. Retrying with another voice...")
+            print(f"Edge TTS websocket returned {err.status}. Retrying with another voice...") ## error handling.
             voice_for_tts = random.choice(POSSIBLE_VOICES)
 
             # longer wait helps with 503 rate limiting/server overload
@@ -51,7 +51,7 @@ async def amain(TEXT) -> None:
 
     print("Done generating audio and subtitles. Saving subtitles to file...")
     with open(SRT_FILE, "w", encoding="utf-8") as file:
-        file.write(submaker.get_srt())
+        file.write(submaker.get_srt()) ## save subtitles. as of now, unused
 
     print("TTS generation complete. Subtitles saved to " + SRT_FILE + " and audio saved to " + OUTPUT_FILE)
     print("Done with TTS generation. Beginning video editing process...")
