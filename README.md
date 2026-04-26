@@ -1,5 +1,8 @@
 # Instagram Brainrot Video Maker
 Using the free [NVIDIA BUILD API](https://build.nvidia.com/blueprints) as well as [edge-tts](https://github.com/rany2/edge-tts), this software can create a fake Reddit story, and then create audio for it, and then overlay it onto a clip from a longer video. It can do this almost fully in the cloud by hooking into these APIS. It is designed to get views on Instagram, but it may or may not be good depending on how things go idk I haven't tested it and it's almost midnight as I write this I'll fix this later.
+
+It does what it does by calling the NVIDIA [Qwen3.5-122b-a10b endpoint](https://build.nvidia.com/qwen/qwen3.5-122b-a10b) with the prompt, and then passing the response edge-tts, which uses Microsoft Edge's TTS system to return an audio. **YOU DO NOT NEED WINDOWS OR EDGE FOR THIS TO WORK.** It then uses ffmpeg-python to overlay this onto a random clip from a video that you provide.
+
 **Importantly, it does not post videos on Instagram automatically (yet). That is a fully user thing.**
 
 # SETUP
